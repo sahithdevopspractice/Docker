@@ -1,0 +1,3 @@
+How to login into ec2 Server using SSH
+Command to login into ec2 server usning terminal is
+ssh -i <private key location absolute path/private key file name> <username>@ipaddress
