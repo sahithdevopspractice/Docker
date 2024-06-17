@@ -1,3 +1,177 @@
 How to login into ec2 Server using SSH
 Command to login into ec2 server usning terminal is
 ssh -i <private key location absolute path/private key file name> <username>@ipaddress
+
+Commands to Install Docker on centos8:-
+    Become a root user first command is sudo su -
+    yum install -y yum-utils
+    Add a repo:- yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    yum install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    Start Docker:-
+    systemctl start docker
+
+    Enable Docker:-
+    systemctl enable docker
+
+    Status Docker:-
+    systemctl status docker
+
+    docker ps 
+    CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+    As a root user you will have access to docker ps but if you exit and run the same command you will get permission denied error
+    
+    For example if you run the command docker ps as a normal user then you will get the following error
+    permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.45/containers/json": dial unix /var/run/docker.sock: connect: permission denied
+
+    Reason:- docker command access will have only to users who are in docker group, it means docker users can only docker, so when you install docker a group called "docker" is created. So here we have to add the user to the docker group, by using the command usermod -aG <group name> <usernmae>
+    usermod -aG docker centos:- so this command will add the user centos to the docker group
+    Become root user and add the user to the docker group, inorder to get permission and use as a centos user, after adding the user logout and logback in
+    Use command exit to logout
+    TO log back in use ssh -i <privatekey> <username>@ipaddress
+
+
+    Difference between Images and Containers:-
+    It is like AMI(amazon meachine images) vs EC2 instances.
+    AMI is a physical thing, it has some memory init, if you run the AMI then we will get Ec2 instance, simillarly image is a physical tihing it has some memory, configuration, some files init if we run this image we will get the container, so CONTAINER IS THE RUNNING VERSION OF IMAGE
+
+
+    ###### Some regular Docker Commands:-
+    docker images:- **show you the existed list of images in the server**
+    docker pull <image-name>:- It will pull the image
+    Example:- docker pull nginx 
+    Output:-  "Using default tag: latest
+    latest: Pulling from library/nginx"
+
+    **docker pull nginix**-- by default docker will pull the latest image from the docker hub, but if you want to pull a perticular version of the image then the command will be 
+    docker pull <image-name>:<tag/version>
+    Example:- docker pull nginx:1-bookworm-perl
+    OutPut:- 1-bookworm-perl: Pulling from library/nginx
+
+    docker pull nginx:alpine
+    alpine: Pulling from library/nginx
+
+    docker images
+    REPOSITORY   TAG               IMAGE ID       CREATED       SIZE
+    nginx        alpine            70ea0d8cc530   2 weeks ago   48.3MB
+
+    input:- docker pull alpine
+    REPOSITORY   TAG               IMAGE ID       CREATED       SIZE
+    alpine       latest            1d34ffeaf190   3 weeks ago   7.79MB
+
+
+    Docker Command to create a container:-
+    docker create <image ID>/<image name>:version
+     command: docker create nginx:latest
+     Outpput:- 2e90e9f83890c72eab6700b01f9cd2f3dce9b8c118d25455fe804788a1662951
+
+    How to check if the container is created or not?
+    command is: docker ps
+    Output:- CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+    It's not showning anything because docker ps will show only running containers.
+
+    Command:- docker ps -a
+    OutPut:- CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS    PORTS     NAMES
+             2e90e9f83890   nginx:latest   "/docker-entrypoint.…"   2 minutes ago   Created             crazy_buck
+    docker ps -a:- it will show all the containers with all status, even the container is not running. here the status of the container is created but not running
+
+    What is the command to run a container?
+    command is:- docker statrt <container id>
+    example:- docker start 2e90e9f83890
+    to check the status run docker ps
+    Output:- 
+    CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS         PORTS     NAMES
+    2e90e9f83890   nginx:latest   "/docker-entrypoint.…"   8 minutes ago   Up 3 seconds   80/tcp    crazy_buck
+
+    Now here we can notice the status of the container is Up 3 seconds, it means nginx is running.
+
+    HOW TO REMOVE A CONTAINER?
+    docker rm <container id>
+    docker rm 2e90e9f83890
+    output:- "Error response from daemon: cannot remove container "/crazy_buck": container is running: stop the container before removing or force remove"
+    So here if you want to remove the container, needs to stop first
+
+    What is the command to stop a container?
+    docker stop <container id>
+    docker stop 2e90e9f83890
+
+    How to remove a perticular docker image? 
+    To remove a perticular image the docker is
+    docker rmi <image id>
+    docker rmi 3e3b0de6968d
+
+    **How to remove all the images in docker?**
+    First check how many image are there command is
+    docker images -a -q
+    -a represents for all the images
+    -q represents all the container id's
+
+    **NOW THE COMMAND TO REMOVE ALL THE IMAGES**
+    docker rmi `docker images -a -q`
+
+    pull+create+start---> docker run
+
+    **DOCKER RUN**:- this command will pull the image, create container and start the container.
+    for example docker run <image name>
+    docker run nginx
+    it will pull create and start the container and it will attach to the screen, if we do control+c then it will exit the container, because it running in the foreground and attaching to the screen, if you want to **run** in the **background** then the command is **docker run -d nginx** then it will run in the background "-d" it  is for detach.
+
+    **How to Access the Container?**
+    PORT FORWARDING:- 
+    So here nginx container is running inside EC2 Vm, when you send a request it will reach to the EC2 instance port(nothing but host port) number and will through a error page because the request is hitting EC2 server (host server) port but not the container port.
+        So here we have to open the HOST port umber and it will map to the container port.
+
+    Command is docker run -d -p 8080:80 nginx
+    here "-d"-- detach mode
+    "-p"-- port number, will expose the host port number
+    8080:- Host port number
+      80: Container Port Number
+
+    simillarly you can create multiple container in one server/EC2 instance/Host and and can deploy static websites
+    docker run -d -p 8081:80 nginx--> this will create and run anothe contaier in the same EC2 instance
+    docker run -d -p 8082:80 nginx--> this will cretae and run another container in the same EC2 instance.
+
+    **CONTAINER NAMES**
+
+    CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS          PORTS                                   NAMES
+706108fc1776   nginx     "/docker-entrypoint.…"   8 seconds ago    Up 6 seconds    0.0.0.0:8082->80/tcp, :::8082->80/tcp   frosty_feistel
+95d0c74c32f2   nginx     "/docker-entrypoint.…"   29 seconds ago   Up 27 seconds   0.0.0.0:8081->80/tcp, :::8081->80/tcp   agitated_wilbur
+237ae5a795b8   nginx     "/docker-entrypoint.…"   11 minutes ago   Up 11 minutes   0.0.0.0:8080->80/tcp, :::8080->80/tcp   funny_ishizaka
+
+when we docker run command by default docker is giving some random name, we can notice that in the above output, docker is taking randomly two dictonery words with underscore in between.
+
+docker rm -f `docker ps -a -q`-- this will remove all the running images forcefully, here -f stands for forcefully.
+
+**So here what to do if you want to assing a perticular name the container?**
+"docker run -d -p 8081:80 --name sahith nginx" this command will run the container in the detach mode, open the host port and assigns the defined name to the container, don't give same name to the another container, other wise it will through an error. duplicates names are not allowed.
+
+**How do you login into the container?**
+Here container is also a light weight VM,
+run docker ps -- to check status of  currently running container.
+
+CONTAINER ID   IMAGE     COMMAND                  CREATED         STATUS         PORTS                                   NAMES
+c5bc23361ed6   nginx     "/docker-entrypoint.…"   7 minutes ago   Up 7 minutes   0.0.0.0:8081->80/tcp, :::8081->80/tcp   sahith
+
+now run the command docker exec -it <name of the container/ container id> bash/sh
+Example:- docker exec -it sahith bash
+Output:- root@c5bc23361ed6:/#
+Input:- cat /etc/*release --> to check the release 
+Output:- 
+PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
+NAME="Debian GNU/Linux" ---> this is the baseOS
+VERSION_ID="12"
+VERSION="12 (bookworm)"
+VERSION_CODENAME=bookworm
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+
+Command to Inspect a container:- docker inspect <container id>
+Example:- docker inspect c5bc23361ed6
+
+
+**DOCKERFILES**
+Dockerfile is a declarative way of creating our own images
+
